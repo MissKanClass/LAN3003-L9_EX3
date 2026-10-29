@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>關愛伴你行 互動練習</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a0533 0%, #2d1b69 30%, #11998e 100%);
+      display: flex; flex-direction: column; align-items: center; padding: 16px;
+    }
+    .game-header { width:100%; max-width:680px; text-align:center; padding:20px 10px 10px; }
+    .game-header h1 {
+      font-size:1.7rem; font-weight:900;
+      background: linear-gradient(90deg,#f9d423,#ff4e50,#a18cd1);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:2px;
+    }
+    .game-header p { color:#ccc; font-size:0.82rem; margin-top:4px; letter-spacing:1px; }
+
+    .progress-bar-wrap { width:100%; max-width:680px; background:rgba(255,255,255,0.12); border-radius:20px; height:10px; margin:12px 0 4px; overflow:hidden; }
+    .progress-bar-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,#f9d423,#ff4e50); transition:width 0.5s ease; }
+    .progress-label { color:#ddd; font-size:0.78rem; text-align:right; max-width:680px; width:100%; margin-bottom:8px; }
+
+    .status-bar { display:flex; justify-content:space-between; align-items:center; width:100%; max-width:680px; margin-bottom:12px; gap:8px; }
+    .score-box { background:linear-gradient(135deg,#f9d423,#f7971e); color:#1a0533; font-weight:800; font-size:0.88rem; padding:6px 14px; border-radius:20px; box-shadow:0 2px 10px rgba(249,212,35,0.4); white-space:nowrap; }
+    .section-badge { background:linear-gradient(135deg,#a18cd1,#fbc2eb); color:#1a0533; font-weight:700; font-size:0.75rem; padding:6px 12px; border-radius:20px; text-align:center; flex:1; }
+    .pass-indicator { font-size:0.75rem; font-weight:700; padding:6px 12px; border-radius:20px; white-space:nowrap; }
+    .pass-indicator.passing { background:rgba(56,239,125,0.2); color:#38ef7d; border:1px solid #38ef7d; }
+    .pass-indicator.failing  { background:rgba(255,78,80,0.2);  color:#ff6b6b; border:1px solid #ff4e50; }
+
+    .card { width:100%; max-width:680px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.18); backdrop-filter:blur(12px); border-radius:20px; padding:24px 20px 20px; box-shadow:0 8px 32px rgba(0,0,0,0.35); margin-bottom:14px; }
+
+    .q-type-tag { display:inline-block; font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:10px; margin-bottom:10px; letter-spacing:1px; }
+    .tag-mc       { background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; }
+    .tag-dropdown { background:linear-gradient(90deg,#11998e,#38ef7d); color:#fff; }
+    .tag-match    { background:linear-gradient(90deg,#f7971e,#ffd200); color:#1a0533; }
+    .tag-order    { background:linear-gradient(90deg,#ff4e50,#f9d423); color:#1a0533; }
+    .tag-tf       { background:linear-gradient(90deg,#fc466b,#3f5efb); color:#fff; }
+    .pts-tag { display:inline-block; font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:10px; margin-bottom:10px; margin-left:6px; background:rgba(249,212,35,0.2); border:1px solid rgba(249,212,35,0.5); color:#f9d423; }
+
+    .question-text { color:#f0f0f0; font-size:1.05rem; line-height:1.7; margin-bottom:18px; font-weight:500; }
+
+    /* MC */
+    .options-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+    .opt-btn { background:rgba(255,255,255,0.09); border:1.5px solid rgba(255,255,255,0.22); color:#f0f0f0; border-radius:12px; padding:12px 14px; font-size:0.88rem; cursor:pointer; text-align:left; transition:all 0.2s; line-height:1.5; }
+    .opt-btn:hover:not(:disabled) { background:rgba(161,140,209,0.28); border-color:#a18cd1; transform:translateY(-1px); box-shadow:0 4px 14px rgba(161,140,209,0.3); }
+    .opt-btn.correct { background:linear-gradient(135deg,rgba(56,239,125,0.25),rgba(17,153,142,0.25)); border-color:#38ef7d; color:#38ef7d; font-weight:700; }
+    .opt-btn.wrong   { background:linear-gradient(135deg,rgba(255,78,80,0.25),rgba(252,70,107,0.25)); border-color:#ff4e50; color:#ff4e50; text-decoration:line-through; }
+    .opt-btn .opt-label { font-weight:800; margin-right:6px; color:#f9d423; }
+    .opt-btn:disabled { cursor:default; }
+
+    /* Dropdown */
+    .dropdown-fill-area { margin-bottom:16px; }
+    .df-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+    .df-label { color:#f9d423; font-weight:800; font-size:0.9rem; min-width:22px; }
+    .df-prefix { color:#e0e0e0; font-size:0.9rem; white-space:nowrap; }
+    .df-select {
+      background:rgba(255,255,255,0.12); border:2px solid rgba(161,140,209,0.5);
+      border-radius:10px; color:#fff; padding:9px 34px 9px 14px; font-size:0.9rem;
+      outline:none; cursor:pointer; transition:border 0.2s, background 0.2s;
+      min-width:130px; flex:1; appearance:none; -webkit-appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23f9d423' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 12px center;
+    }
+    .df-select option { background:#2d1b69; color:#fff; }
+    .df-select:focus { border-color:#a18cd1; background-color:rgba(161,140,209,0.15); }
+    .df-select.correct-sel { border-color:#38ef7d; background-color:rgba(56,239,125,0.15); color:#38ef7d; font-weight:700; }
+    .df-select.wrong-sel   { border-color:#ff4e50; background-color:rgba(255,78,80,0.15);  color:#ff4e50; }
+    .df-suffix { color:#e0e0e0; font-size:0.9rem; white-space:nowrap; }
+    .df-tick { font-size:1rem; min-width:20px; text-align:center; }
+    /* per-blank score badge */
+    .df-pts { font-size:0.7rem; font-weight:700; padding:2px 7px; border-radius:8px; white-space:nowrap; }
+    .df-pts.got  { background:rgba(56,239,125,0.25); color:#38ef7d; border:1px solid #38ef7d; }
+    .df-pts.miss { background:rgba(255,78,80,0.25);  color:#ff6b6b; border:1px solid #ff4e50; }
+
+    /* partial score summary */
+    .partial-summary {
+      border-radius:12px; padding:10px 14px; margin-bottom:4px;
+      font-size:0.85rem; font-weight:700; text-align:center;
+    }
+    .partial-summary.all-correct { background:linear-gradient(135deg,rgba(56,239,125,0.2),rgba(17,153,142,0.2)); border:1px solid #38ef7d; color:#38ef7d; }
+    .partial-summary.partial      { background:linear-gradient(135deg,rgba(249,212,35,0.15),rgba(247,151,30,0.15)); border:1px solid #f9d423; color:#f9d423; }
+    .partial-summary.all-wrong    { background:linear-gradient(135deg,rgba(255,78,80,0.2),rgba(252,70,107,0.2)); border:1px solid #ff4e50; color:#ff6b6b; }
+
+    /* Match */
+    .match-area { margin-bottom:14px; }
+    .match-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .match-left { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border-radius:10px; padding:8px 12px; font-size:0.8rem; font-weight:600; min-width:110px; text-align:center; }
+    .match-arrow { color:#f9d423; font-size:1.1rem; }
+    .match-select { flex:1; background:rgba(255,255,255,0.1); border:1.5px solid rgba(255,255,255,0.25); border-radius:10px; color:#fff; padding:9px 10px; font-size:0.8rem; outline:none; cursor:pointer; }
+    .match-select option { background:#2d1b69; color:#fff; }
+    .match-select.correct-input { border-color:#38ef7d; }
+    .match-select.wrong-input   { border-color:#ff4e50; }
+    .match-tick { font-size:1rem; min-width:20px; }
+    .match-pts { font-size:0.7rem; font-weight:700; padding:2px 7px; border-radius:8px; white-space:nowrap; }
+    .match-pts.got  { background:rgba(56,239,125,0.25); color:#38ef7d; border:1px solid #38ef7d; }
+    .match-pts.miss { background:rgba(255,78,80,0.25);  color:#ff6b6b; border:1px solid #ff4e50; }
+
+    /* Order */
+    .order-area { margin-bottom:14px; }
+    .order-items { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+    .order-item { background:linear-gradient(135deg,#f7971e,#ffd200); color:#1a0533; border-radius:10px; padding:8px 14px; font-size:0.82rem; font-weight:700; cursor:pointer; user-select:none; transition:all 0.2s; }
+    .order-item:hover { transform:scale(1.05); box-shadow:0 4px 12px rgba(247,151,30,0.4); }
+    .order-slots { display:flex; flex-direction:column; gap:6px; }
+    .order-slot { background:rgba(255,255,255,0.07); border:2px dashed rgba(255,255,255,0.3); border-radius:10px; padding:10px 14px; min-height:42px; font-size:0.82rem; color:#aaa; display:flex; align-items:center; transition:all 0.2s; }
+    .order-slot.filled { border-style:solid; border-color:#a18cd1; color:#fff; background:rgba(161,140,209,0.18); }
+    .order-slot.correct-slot { border-color:#38ef7d; color:#38ef7d; }
+    .order-slot.wrong-slot   { border-color:#ff4e50; color:#ff4e50; }
+    .slot-num { color:#f9d423; font-weight:800; margin-right:8px; }
+
+    /* Feedback */
+    .feedback-box { border-radius:12px; padding:12px 16px; margin-bottom:12px; font-size:0.88rem; line-height:1.6; display:none; }
+    .feedback-box.show { display:block; }
+    .feedback-correct { background:linear-gradient(135deg,rgba(56,239,125,0.18),rgba(17,153,142,0.18)); border:1px solid #38ef7d; color:#7fffd4; }
+    .feedback-wrong   { background:linear-gradient(135deg,rgba(255,78,80,0.18),rgba(252,70,107,0.18)); border:1px solid #ff4e50; color:#ffb3b3; }
+    .feedback-partial { background:linear-gradient(135deg,rgba(249,212,35,0.15),rgba(247,151,30,0.15)); border:1px solid #f9d423; color:#ffe066; }
+    .answer-reveal { background:rgba(255,255,255,0.07); border-radius:8px; padding:10px 14px; margin-top:8px; color:#e0e0e0; font-size:0.85rem; line-height:1.7; display:none; }
+    .answer-reveal.show { display:block; }
+    .answer-reveal .ans-label { color:#f9d423; font-weight:700; }
+
+    /* Buttons */
+    .btn-row { display:flex; gap:10px; flex-wrap:wrap; }
+    .btn-primary { flex:1; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:12px; padding:13px 20px; font-size:0.92rem; font-weight:700; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 14px rgba(102,126,234,0.4); }
+    .btn-primary:hover { transform:translateY(-2px); }
+    .btn-show-ans { background:linear-gradient(135deg,#f7971e,#ffd200); color:#1a0533; border:none; border-radius:12px; padding:13px 16px; font-size:0.88rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+    .btn-show-ans:hover { transform:translateY(-2px); }
+
+    /* Section intro */
+    .section-intro { width:100%; max-width:680px; text-align:center; padding:30px 20px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.18); border-radius:20px; margin-bottom:14px; }
+    .section-intro .sec-icon { font-size:3rem; margin-bottom:12px; }
+    .section-intro h2 { color:#f9d423; font-size:1.4rem; margin-bottom:8px; }
+    .section-intro p  { color:#ccc; font-size:0.88rem; line-height:1.6; }
+    .section-intro .q-count { display:inline-block; background:linear-gradient(135deg,#a18cd1,#fbc2eb); color:#1a0533; font-weight:700; padding:4px 14px; border-radius:20px; font-size:0.8rem; margin-top:10px; }
+
+    /* Score meter */
+    .score-meter { width:100%; max-width:680px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.15); border-radius:16px; padding:14px 18px; margin-bottom:12px; }
+    .meter-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .meter-label { color:#ccc; font-size:0.8rem; }
+    .meter-val   { color:#f9d423; font-weight:800; font-size:1rem; }
+    .meter-bar-wrap { background:rgba(255,255,255,0.1); border-radius:10px; height:8px; overflow:hidden; position:relative; }
+    .meter-bar-fill { height:100%; border-radius:10px; transition:width 0.5s ease; }
+    .meter-bar-fill.good { background:linear-gradient(90deg,#38ef7d,#11998e); }
+    .meter-bar-fill.mid  { background:linear-gradient(90deg,#f9d423,#f7971e); }
+    .meter-bar-fill.bad  { background:linear-gradient(90deg,#ff4e50,#fc466b); }
+    .pass-line { position:absolute; top:0; bottom:0; width:2px; background:#fff; opacity:0.6; left:60%; }
+    .meter-hint { color:#aaa; font-size:0.72rem; margin-top:6px; text-align:right; }
+
+    /* Result */
+    .result-screen { width:100%; max-width:680px; text-align:center; padding:40px 24px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.18); border-radius:24px; display:none; }
+    .result-screen.show { display:block; }
+    .result-grade { font-size:5rem; margin-bottom:10px; filter:drop-shadow(0 0 20px rgba(249,212,35,0.6)); }
+    .result-score-text { font-size:3rem; font-weight:900; background:linear-gradient(90deg,#f9d423,#ff4e50); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:4px; }
+    .result-score-sub { color:#aaa; font-size:0.85rem; margin-bottom:16px; }
+    .result-pass-badge { display:inline-block; font-size:1rem; font-weight:800; padding:8px 24px; border-radius:20px; margin-bottom:16px; }
+    .result-pass-badge.pass { background:linear-gradient(135deg,#38ef7d,#11998e); color:#fff; }
+    .result-pass-badge.fail { background:linear-gradient(135deg,#ff4e50,#fc466b); color:#fff; }
+    .result-msg { color:#ccc; font-size:0.9rem; line-height:1.7; margin-bottom:20px; }
+    .result-breakdown { background:rgba(255,255,255,0.07); border-radius:14px; padding:16px; margin-bottom:20px; text-align:left; }
+    .result-breakdown h4 { color:#f9d423; margin-bottom:10px; font-size:0.9rem; }
+    .rb-row { display:flex; justify-content:space-between; color:#ccc; font-size:0.82rem; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.08); align-items:center; }
+    .rb-row:last-child { border-bottom:none; }
+    .rb-score { color:#38ef7d; font-weight:700; }
+
+    .combo-popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); background:linear-gradient(135deg,#f9d423,#ff4e50); color:#fff; font-size:1.8rem; font-weight:900; padding:16px 32px; border-radius:20px; z-index:999; pointer-events:none; transition:transform 0.3s,opacity 0.3s; opacity:0; text-shadow:0 2px 8px rgba(0,0,0,0.3); }
+    .combo-popup.show { transform:translate(-50%,-50%) scale(1); opacity:1; }
+
+    @media(max-width:480px){
+      .options-grid { grid-template-columns:1fr; }
+      .game-header h1 { font-size:1.3rem; }
+      .question-text { font-size:0.95rem; }
+      .match-left { min-width:80px; font-size:0.72rem; }
+      .status-bar { flex-wrap:wrap; }
+      .df-row { flex-wrap:wrap; }
+      .df-select { min-width:100px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="game-header">
+  <h1>🌸 關愛伴你行 互動練習</h1>
+  <p>欣雅美容公司 · 普通話匯報練習 · 總分 100 分</p>
+</div>
+
+<div class="progress-bar-wrap">
+  <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+</div>
+<div class="progress-label" id="progressLabel">0 / 20 題</div>
+
+<div class="status-bar">
+  <div class="score-box" id="scoreBox">⭐ 0 / 100</div>
+  <div class="section-badge" id="sectionBadge">開始</div>
+  <div class="pass-indicator failing" id="passIndicator">距合格 60 分</div>
+</div>
+
+<div class="score-meter" id="scoreMeter" style="display:none">
+  <div class="meter-row">
+    <span class="meter-label">目前得分</span>
+    <span class="meter-val" id="meterVal">0 分</span>
+  </div>
+  <div class="meter-bar-wrap">
+    <div class="meter-bar-fill bad" id="meterFill" style="width:0%"></div>
+    <div class="pass-line"></div>
+  </div>
+  <div class="meter-hint">合格線：60 分 ｜ 白線 = 60分位置</div>
+</div>
+
+<div id="sectionIntro" class="section-intro" style="display:none"></div>
+<div id="questionCard" class="card" style="display:none"></div>
+<div id="resultScreen" class="result-screen"></div>
+<div class="combo-popup" id="comboPopup"></div>
+
+<script>
+// ============================================================
+//  SCORING SCHEME  (total = 100)
+//
+//  題型          題數   每題/每格分   小計
+//  MC 選擇題       8    4分/題        32
+//  TF 判斷題       4    3分/題        12
+//  Dropdown 下拉  4題共14格  2分/格   28  (3+4+4+3)
+//  Match 配對     2題共7對   2分/對   14  (4+3)
+//  Order 排序      2    7分/題        14
+//  ─────────────────────────────────────
+//  合計                              100
+//
+//  Dropdown / Match：每個空格/對子獨立計分，部分正確可獲部分分數
+//  Order：全對得7分，否則0分（順序題難以部分計分）
+// ============================================================
+
+const PASS_SCORE = 60;
+const TOTAL_MAX  = 100;
+
+function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+// ── Question Bank ──────────────────────────────────────────
+const SECTIONS = [
+  {
+    id:'intro', name:'📋 匯報基礎', icon:'📋',
+    desc:'測試你對匯報基本資訊的掌握，包括匯報人員、目的及流程。',
+    questions:[
+      // Q1  MC 4分
+      { type:'mc', pts:4,
+        q:'根據簡報，這次活動建議匯報的匯報人是誰？他的職位是什麼？',
+        opts:['陳大文，公關部助理','張家明，公關部助理','張家明，美容部主任','陳大文，市場部經理'],
+        ans:1,
+        explain:'匯報人為<strong>張家明</strong>，職位為<strong>公關部助理</strong>。陳大文是學生姓名（出現在封面頁），並非匯報角色。', source:null },
+      // Q2  MC 4分
+      { type:'mc', pts:4,
+        q:'以下哪一項<strong>不屬於</strong>本次匯報目的？',
+        opts:['利用員工的專業知識','為長期照顧者提供支援','為公司開拓新客源','確保活動順利舉行'],
+        ans:2,
+        explain:'匯報目的共三點：①利用員工的<strong>專業知識</strong>；②為長期照顧者提供<strong>支援</strong>；③確保活動<strong>順利舉行</strong>。「開拓新客源」並非本次活動目的。',
+        source:'資料來源：改善照顧者支援服務 | 香港婦女中心協會' },
+      // Q3  TF 3分
+      { type:'tf', pts:3,
+        q:'本次匯報的流程依次為：報告目的 → 活動建議 → 活動簡介 → 總結。',
+        ans:false,
+        explain:'此說法<strong>錯誤</strong>。正確流程為：報告目的 → <strong>活動簡介</strong> → <strong>活動建議</strong> → 總結。「活動簡介」在「活動建議」之前。', source:null },
+      // Q4  TF 3分
+      { type:'tf', pts:3,
+        q:'根據嶺南大學亞太老年學研究中心，長期照顧者面對的困難包括：情緒疾病（焦慮症、抑鬱症等）及不願尋求協助。',
+        ans:true,
+        explain:'此說法<strong>正確</strong>。嶺南大學亞太老年學研究中心指出，長期照顧者面對兩大困難：①<strong>情緒疾病</strong>（焦慮症、抑鬱症等）；②<strong>不願尋求協助</strong>。',
+        source:'資料來源：嶺南大學亞太老年學研究中心' }
+    ]
+  },
+  {
+    id:'staff', name:'💼 員工專長', icon:'💼',
+    desc:'考核欣雅美容公司員工的三大專長，以及如何支持活動舉辦。',
+    questions:[
+      // Q5  Dropdown 3格×2分=6分
+      { type:'dropdown', pts:2,
+        q:'欣雅美容公司員工具備三大專長，請從下拉選單選出正確答案：',
+        blanks:[
+          { label:'①', prefix:'', suffix:'執業資格', ans:'美容師',
+            opts:shuffle(['美容師','護士','物理治療師','社工']) },
+          { label:'②', prefix:'熟悉', suffix:'工作', ans:'美容及護理',
+            opts:shuffle(['美容及護理','美容及銷售','護理及醫療','美容及教學']) },
+          { label:'③', prefix:'豐富的', suffix:'經驗', ans:'待客',
+            opts:shuffle(['待客','管理','教學','行政']) }
+        ],
+        explain:'三大專長：①<strong>美容師</strong>執業資格；②熟悉<strong>美容及護理</strong>工作；③豐富的<strong>待客</strong>經驗。', source:null },
+      // Q6  MC 4分
+      { type:'mc', pts:4,
+        q:'欣雅美容公司員工的哪項專長最直接支持「香薰治療工作坊」的舉辦？',
+        opts:['豐富的待客經驗','美容師執業資格及熟悉美容護理工作','公關及宣傳能力','財務管理能力'],
+        ans:1,
+        explain:'<strong>美容師執業資格</strong>及<strong>熟悉美容及護理工作</strong>最直接支持香薰治療工作坊，因香薰治療屬美容護理專業範疇，需持牌美容師主持方具公信力。', source:null }
+    ]
+  },
+  {
+    id:'activity1', name:'🌿 環節一：香薰治療', icon:'🌿',
+    desc:'深入考核香薰治療工作坊的內容、成效及學術依據。',
+    questions:[
+      // Q7  MC 4分
+      { type:'mc', pts:4,
+        q:'支持「香薰治療工作坊」成效的學術資料來源是哪個？',
+        opts:['嶺南大學亞太老年學研究中心','香港家庭福利會','Airiti Library 華藝線上圖書館','上醫預防醫學發展協會'],
+        ans:2,
+        explain:'香薰治療工作坊的成效資料來源是<strong>Airiti Library 華藝線上圖書館</strong>中的《香薰香氛影響生活壓力認知之研究》，為活動成效提供學術科學依據。',
+        source:'資料來源：香薰香氛影響生活壓力認知之研究｜Airiti Library 華藝線上圖書館' },
+      // Q8  Dropdown 4格×2分=8分
+      { type:'dropdown', pts:2,
+        q:'根據 Airiti Library 的研究，香薰治療有四大成效，請從下拉選單選出正確答案：',
+        blanks:[
+          { label:'①', prefix:'放鬆', suffix:'', ans:'身心',
+            opts:shuffle(['身心','精神','體力','心靈']) },
+          { label:'②', prefix:'減輕', suffix:'', ans:'壓力和焦慮症',
+            opts:shuffle(['壓力和焦慮症','壓力和失眠','焦慮和抑鬱','緊張和壓力']) },
+          { label:'③', prefix:'改善', suffix:'質量', ans:'睡眠',
+            opts:shuffle(['睡眠','飲食','記憶','專注']) },
+          { label:'④', prefix:'提高情緒', suffix:'', ans:'穩定性',
+            opts:shuffle(['穩定性','積極性','平衡性','敏感性']) }
+        ],
+        explain:'四大成效：①放鬆<strong>身心</strong>；②減輕<strong>壓力和焦慮症</strong>；③改善<strong>睡眠</strong>質量；④提高情緒<strong>穩定性</strong>。',
+        source:'資料來源：Airiti Library 華藝線上圖書館' },
+      // Q9  Order 7分
+      { type:'order', pts:7,
+        q:'請將「香薰治療工作坊」的三項內容按正確順序排列（由先到後）：',
+        items:['體驗（嗅香、香薰蒸汽、香薰石）','教授香薰治療的方法','講解香薰的功效'],
+        correctOrder:[2,1,0],
+        explain:'正確順序：①<strong>講解香薰的功效</strong>（理論先行）→ ②<strong>教授香薰治療的方法</strong>（示範技巧）→ ③<strong>體驗</strong>（實踐應用）。符合「先理論後實踐」的教學邏輯。', source:null }
+    ]
+  },
+  {
+    id:'activity2', name:'🧘 環節二：鬆弛運動', icon:'🧘',
+    desc:'深入考核鬆弛運動學一學的內容、成效及學術依據。',
+    questions:[
+      // Q10  MC 4分
+      { type:'mc', pts:4,
+        q:'支持「鬆弛運動學一學」成效的資料來源是哪個機構？',
+        opts:['Airiti Library 華藝線上圖書館','香港家庭福利會','香港婦女中心協會','上醫預防醫學發展協會'],
+        ans:3,
+        explain:'鬆弛運動的成效資料來源是<strong>上醫預防醫學發展協會</strong>（網址：gcm.org.tw），專注於預防醫學，為鬆弛運動的健康效益提供科學支持。',
+        source:'資料來源：上醫預防醫學發展協會' },
+      // Q11  MC 4分
+      { type:'mc', pts:4,
+        q:'鬆弛運動可改善因緊張引致的健康問題，以下哪三項在簡報中被<strong>明確列出</strong>？',
+        opts:['糖尿病、心臟病、中風','胃潰瘍、哮喘、高血壓','失眠、頭痛、腰背痛','濕疹、過敏症、消化不良'],
+        ans:1,
+        explain:'簡報明確列出三種因緊張引致的健康問題：①<strong>胃潰瘍</strong>；②<strong>哮喘</strong>；③<strong>高血壓</strong>。這些均屬壓力相關的身心症。',
+        source:'資料來源：上醫預防醫學發展協會' },
+      // Q12  TF 3分
+      { type:'tf', pts:3,
+        q:'鬆弛運動的成效只針對情緒問題，對身體健康問題沒有幫助。',
+        ans:false,
+        explain:'此說法<strong>錯誤</strong>。鬆弛運動除舒緩情緒外，亦能改善<strong>肌肉緊張</strong>，以及改善因緊張引致的<strong>胃潰瘍、哮喘、高血壓</strong>等身體健康問題，成效兼顧身心兩方面。',
+        source:'資料來源：上醫預防醫學發展協會' }
+    ]
+  },
+  {
+    id:'activity3', name:'🤝 環節三：濟濟一堂', icon:'🤝',
+    desc:'深入考核濟濟一堂齊歡聚的內容、成效及學術依據。',
+    questions:[
+      // Q13  MC 4分
+      { type:'mc', pts:4,
+        q:'支持「濟濟一堂齊歡聚」成效的資料來源是哪個機構的哪個項目？',
+        opts:['上醫預防醫學發展協會——預防醫學研究','嶺南大學亞太老年學研究中心——老年照顧研究','香港家庭福利會——護老者喘息活動','Airiti Library——社交支援研究'],
+        ans:2,
+        explain:'環節三的成效資料來源是<strong>香港家庭福利會</strong>的「<strong>護老者喘息活動</strong>」（hkfws.org.hk）。「喘息」形象地描述照顧者需暫時放下照顧責任、喘一口氣的需要。',
+        source:'資料來源：護老者喘息活動 | 香港家庭福利會' },
+      // Q14  Dropdown 4格×2分=8分
+      { type:'dropdown', pts:2,
+        q:'根據香港家庭福利會，「濟濟一堂齊歡聚」有四大成效，請從下拉選單選出正確答案：',
+        blanks:[
+          { label:'①', prefix:'建立', suffix:'網絡', ans:'支持',
+            opts:shuffle(['支持','社交','互助','友誼']) },
+          { label:'②', prefix:'分享', suffix:'', ans:'經驗',
+            opts:shuffle(['經驗','知識','技巧','資訊']) },
+          { label:'③', prefix:'交流', suffix:'', ans:'感受',
+            opts:shuffle(['感受','想法','意見','心得']) },
+          { label:'④', prefix:'', suffix:'家常', ans:'閒話',
+            opts:shuffle(['閒話','分享','談論','聊聊']) }
+        ],
+        explain:'四大成效：①建立<strong>支持</strong>網絡；②分享<strong>經驗</strong>；③交流<strong>感受</strong>；④<strong>閒話</strong>家常。',
+        source:'資料來源：護老者喘息活動 | 香港家庭福利會' }
+    ]
+  },
+  {
+    id:'synthesis', name:'🎯 綜合應用', icon:'🎯',
+    desc:'綜合考核全篇簡報重點，包括資料來源配對及總結要點。',
+    questions:[
+      // Q15  Match 4對×2分=8分
+      { type:'match', pts:2,
+        q:'請將各活動環節與其對應的<strong>資料來源機構</strong>正確配對：',
+        pairs:[
+          {left:'香薰治療工作坊',   right:'Airiti Library 華藝線上圖書館'},
+          {left:'鬆弛運動學一學',   right:'上醫預防醫學發展協會'},
+          {left:'濟濟一堂齊歡聚',   right:'香港家庭福利會'},
+          {left:'照顧者困難研究',   right:'嶺南大學亞太老年學研究中心'}
+        ],
+        options:['Airiti Library 華藝線上圖書館','上醫預防醫學發展協會','香港家庭福利會','嶺南大學亞太老年學研究中心'],
+        explain:'正確配對：①香薰治療→<strong>Airiti Library</strong>；②鬆弛運動→<strong>上醫預防醫學發展協會</strong>；③濟濟一堂→<strong>香港家庭福利會</strong>；④照顧者困難→<strong>嶺南大學</strong>。', source:null },
+      // Q16  Dropdown 3格×2分=6分
+      { type:'dropdown', pts:2,
+        q:'根據簡報的<strong>總結</strong>，本次活動有三大目標，請從下拉選單選出正確答案：',
+        blanks:[
+          { label:'①', prefix:'支持', suffix:'者', ans:'長期照顧',
+            opts:shuffle(['長期照顧','短期照顧','年長','殘疾']) },
+          { label:'②', prefix:'提供', suffix:'支援', ans:'身心健康',
+            opts:shuffle(['身心健康','情緒健康','身體健康','心理輔導']) },
+          { label:'③', prefix:'共同面對照護的', suffix:'', ans:'挑戰',
+            opts:shuffle(['挑戰','困難','壓力','問題']) }
+        ],
+        explain:'總結三大目標：①支持<strong>長期照顧</strong>者；②提供<strong>身心健康</strong>支援；③共同面對照護的<strong>挑戰</strong>。', source:null },
+      // Q17  MC 4分
+      { type:'mc', pts:4,
+        q:'本次匯報在參考資料頁共列出多少個外部資料來源？',
+        opts:['三個','四個','五個','六個'],
+        ans:2,
+        explain:'參考資料頁共列出<strong>五個</strong>來源：①香港婦女中心協會；②Airiti Library 華藝線上圖書館；③一低聲道 The Voice；④香港家庭福利會；⑤上醫預防醫學發展協會。', source:null },
+      // Q18  Match 3對×2分=6分
+      { type:'match', pts:2,
+        q:'請將各活動環節與其最具代表性的<strong>成效關鍵詞</strong>正確配對：',
+        pairs:[
+          {left:'香薰治療工作坊', right:'改善睡眠質量'},
+          {left:'鬆弛運動學一學', right:'舒緩肌肉緊張'},
+          {left:'濟濟一堂齊歡聚', right:'建立支持網絡'}
+        ],
+        options:['改善睡眠質量','舒緩肌肉緊張','建立支持網絡'],
+        explain:'①香薰治療→<strong>改善睡眠質量</strong>；②鬆弛運動→<strong>舒緩肌肉緊張</strong>；③濟濟一堂→<strong>建立支持網絡</strong>。三環節各有側重，互補不足。', source:null },
+      // Q19  TF 3分
+      { type:'tf', pts:3,
+        q:'本次匯報的三個活動環節均由公司美容師主持，體現員工的專業美容知識。',
+        ans:false,
+        explain:'此說法<strong>錯誤</strong>。只有<strong>環節一</strong>由公司<strong>美容師</strong>主持；<strong>環節二</strong>由公司<strong>員工</strong>（非特指美容師）帶領；<strong>環節三</strong>是照顧者自由交流，沒有特定主持人。', source:null },
+      // Q20  Order 7分
+      { type:'order', pts:7,
+        q:'請將以下匯報流程的四個環節按正確順序排列：',
+        items:['總結','活動建議','報告目的','活動簡介'],
+        correctOrder:[2,3,1,0],
+        explain:'正確匯報流程：①<strong>報告目的</strong> → ②<strong>活動簡介</strong> → ③<strong>活動建議</strong> → ④<strong>總結</strong>。這是標準的「目的→背景→建議→結論」匯報結構。', source:null }
+    ]
+  }
+];
+
+// ── State ──────────────────────────────────────────────────
+let state = {
+  sectionIdx:0, questionIdx:0, score:0,
+  answered:false, showingAnswer:false,
+  answeredQ:0,
+  orderSlots:[], orderRemaining:[]
+};
+
+// ── Header ─────────────────────────────────────────────────
+function updateHeader(){
+  const total = SECTIONS.reduce((s,sec)=>s+sec.questions.length,0);
+  const pct   = total ? (state.answeredQ/total*100) : 0;
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressLabel').textContent = state.answeredQ+' / '+total+' 題';
+  document.getElementById('scoreBox').textContent = '⭐ '+state.score+' / 100';
+  const sec = SECTIONS[state.sectionIdx];
+  document.getElementById('sectionBadge').textContent = sec ? sec.name : '完成';
+  const passEl = document.getElementById('passIndicator');
+  if(state.score>=PASS_SCORE){ passEl.textContent='✅ 已合格'; passEl.className='pass-indicator passing'; }
+  else { passEl.textContent='距合格 '+(PASS_SCORE-state.score)+' 分'; passEl.className='pass-indicator failing'; }
+  const mEl=document.getElementById('scoreMeter');
+  if(state.answeredQ>0) mEl.style.display='block';
+  document.getElementById('meterVal').textContent=state.score+' 分';
+  const fEl=document.getElementById('meterFill');
+  fEl.style.width=Math.min(state.score,100)+'%';
+  fEl.className='meter-bar-fill '+(state.score>=PASS_SCORE?'good':state.score>=40?'mid':'bad');
+}
+
+function showCombo(t){ const el=document.getElementById('comboPopup'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1200); }
+
+// ── Section Intro ──────────────────────────────────────────
+function showSectionIntro(){
+  const sec=SECTIONS[state.sectionIdx];
+  const intro=document.getElementById('sectionIntro');
+  intro.style.display='block';
+  document.getElementById('questionCard').style.display='none';
+  document.getElementById('resultScreen').classList.remove('show');
+  // calc max pts for this section
+  const maxPts = sec.questions.reduce((s,q)=>{
+    if(q.type==='dropdown'||q.type==='match') return s+q.blanks?q.blanks.length*q.pts:(q.pairs?q.pairs.length*q.pts:q.pts);
+    return s+q.pts;
+  },0);
+  intro.innerHTML=`
+    <div class="sec-icon">${sec.icon}</div>
+    <h2>${sec.name}</h2>
+    <p>${sec.desc}</p>
+    <div class="q-count">共 ${sec.questions.length} 題</div>
+    <br><br>
+    <button class="btn-primary" onclick="startSection()" style="max-width:200px;margin:0 auto;">開始作答 →</button>`;
+  updateHeader();
+}
+
+function startSection(){ state.questionIdx=0; document.getElementById('sectionIntro').style.display='none'; showQuestion(); }
+
+// ── Show Question ──────────────────────────────────────────
+function showQuestion(){
+  state.answered=false; state.showingAnswer=false;
+  const q=SECTIONS[state.sectionIdx].questions[state.questionIdx];
+  const card=document.getElementById('questionCard');
+  card.style.display='block';
+
+  // pts label
+  let ptsLabel='';
+  if(q.type==='dropdown') ptsLabel=`每格 ${q.pts} 分（共 ${q.blanks.length*q.pts} 分）`;
+  else if(q.type==='match') ptsLabel=`每對 ${q.pts} 分（共 ${q.pairs.length*q.pts} 分）`;
+  else ptsLabel=`${q.pts} 分`;
+
+  const typeLabel={mc:'選擇題',dropdown:'下拉選擇題',match:'配對題',order:'排序題',tf:'判斷題'}[q.type]||'';
+  const tagClass='tag-'+(q.type==='dropdown'?'dropdown':q.type);
+  const total=SECTIONS.reduce((s,sec)=>s+sec.questions.length,0);
+
+  let html=`<span class="q-type-tag ${tagClass}">${typeLabel}</span>`;
+  html+=`<span class="pts-tag">+${ptsLabel}</span>`;
+  html+=`<div style="color:#aaa;font-size:0.78rem;margin-bottom:6px;">第 ${state.answeredQ+1} / ${total} 題</div>`;
+  html+=`<div class="question-text">${q.q}</div>`;
+
+  if(q.type==='mc')       html+=renderMC(q);
+  else if(q.type==='tf')  html+=renderTF(q);
+  else if(q.type==='dropdown') html+=renderDropdown(q);
+  else if(q.type==='match')    html+=renderMatch(q);
+  else if(q.type==='order')    html+=renderOrder(q);
+
+  html+=`<div class="feedback-box" id="feedbackBox"></div>`;
+  html+=`<div class="answer-reveal" id="answerReveal"></div>`;
+  html+=`<div class="btn-row" id="btnRow">`;
+  if(q.type!=='mc'&&q.type!=='tf') html+=`<button class="btn-primary" onclick="submitAnswer()">確認答案</button>`;
+  html+=`</div>`;
+  card.innerHTML=html;
+
+  if(q.type==='order'){ state.orderSlots=new Array(q.items.length).fill(null); state.orderRemaining=[...q.items]; renderOrderInteractive(q); }
+  updateHeader();
+}
+
+// ── Render helpers ─────────────────────────────────────────
+function renderMC(q){
+  const L=['A','B','C','D'];
+  let h=`<div class="options-grid" id="optGrid">`;
+  q.opts.forEach((o,i)=>{ h+=`<button class="opt-btn" id="opt${i}" onclick="selectMC(${i})"><span class="opt-label">${L[i]}.</span>${o}</button>`; });
+  return h+`</div>`;
+}
+function renderTF(q){
+  return `<div class="options-grid" id="optGrid">
+    <button class="opt-btn" id="opt0" onclick="selectTF(true)"><span class="opt-label">✓</span>正確</button>
+    <button class="opt-btn" id="opt1" onclick="selectTF(false)"><span class="opt-label">✗</span>錯誤</button>
+  </div>`;
+}
+function renderDropdown(q){
+  let h=`<div class="dropdown-fill-area" id="dropdownArea">`;
+  q.blanks.forEach((b,i)=>{
+    h+=`<div class="df-row">
+      <span class="df-label">${b.label}</span>`;
+    if(b.prefix) h+=`<span class="df-prefix">${b.prefix}</span>`;
+    h+=`<select class="df-select" id="dfSel${i}">
+        <option value="">── 請選擇 ──</option>
+        ${b.opts.map(o=>`<option value="${o}">${o}</option>`).join('')}
+      </select>`;
+    if(b.suffix) h+=`<span class="df-suffix">${b.suffix}</span>`;
+    h+=`<span class="df-tick" id="dfTick${i}"></span>`;
+    h+=`<span class="df-pts" id="dfPts${i}" style="display:none"></span>`;
+    h+=`</div>`;
+  });
+  return h+`</div>`;
+}
+function renderMatch(q){
+  let h=`<div class="match-area" id="matchArea">`;
+  q.pairs.forEach((p,i)=>{
+    h+=`<div class="match-row">
+      <div class="match-left">${p.left}</div>
+      <span class="match-arrow">→</span>
+      <select class="match-select" id="matchSel${i}">
+        <option value="">── 請選擇 ──</option>
+        ${q.options.map(o=>`<option value="${o}">${o}</option>`).join('')}
+      </select>
+      <span class="match-tick" id="matchTick${i}"></span>
+      <span class="match-pts" id="matchPts${i}" style="display:none"></span>
+    </div>`;
+  });
+  return h+`</div>`;
+}
+function renderOrder(q){
+  return `<div class="order-area" id="orderArea">
+    <div style="color:#ccc;font-size:0.8rem;margin-bottom:6px;">👆 點擊項目加入排序，點擊已排序項目可移除：</div>
+    <div style="color:#f9d423;font-size:0.8rem;margin-bottom:6px;">📦 待排序：</div>
+    <div class="order-items" id="orderItems"></div>
+    <div style="color:#f9d423;font-size:0.8rem;margin:8px 0 6px;">📋 排序結果：</div>
+    <div class="order-slots" id="orderSlots"></div>
+  </div>`;
+}
+function renderOrderInteractive(q){
+  const iEl=document.getElementById('orderItems'), sEl=document.getElementById('orderSlots');
+  if(!iEl||!sEl) return;
+  iEl.innerHTML='';
+  state.orderRemaining.forEach(item=>{ const b=document.createElement('div'); b.className='order-item'; b.textContent=item; b.onclick=()=>addToSlot(item,q); iEl.appendChild(b); });
+  sEl.innerHTML='';
+  for(let i=0;i<q.items.length;i++){
+    const s=document.createElement('div');
+    s.className='order-slot'+(state.orderSlots[i]?' filled':''); s.id='slot'+i;
+    s.innerHTML=`<span class="slot-num">${i+1}.</span>${state.orderSlots[i]||'<span style="color:#666">點擊上方項目放置</span>'}`;
+    if(state.orderSlots[i]){const v=state.orderSlots[i];s.onclick=()=>removeFromSlot(i,v,q);}
+    sEl.appendChild(s);
+  }
+}
+function addToSlot(item,q){ if(state.answered)return; const idx=state.orderSlots.indexOf(null); if(idx===-1)return; state.orderSlots[idx]=item; state.orderRemaining=state.orderRemaining.filter(x=>x!==item); renderOrderInteractive(q); }
+function removeFromSlot(si,item,q){ if(state.answered)return; state.orderSlots[si]=null; state.orderRemaining.push(item); renderOrderInteractive(q); }
+
+// ── Submit ─────────────────────────────────────────────────
+function selectMC(idx){
+  if(state.answered)return;
+  const q=SECTIONS[state.sectionIdx].questions[state.questionIdx];
+  const ok=(idx===q.ans); state.answered=true; state.answeredQ++;
+  for(let i=0;i<q.opts.length;i++){ const b=document.getElementById('opt'+i); if(!b)continue; b.disabled=true; if(i===q.ans)b.classList.add('correct'); else if(i===idx&&!ok)b.classList.add('wrong'); }
+  processResult(ok?q.pts:0, q.pts, q);
+}
+function selectTF(val){
+  if(state.answered)return;
+  const q=SECTIONS[state.sectionIdx].questions[state.questionIdx];
+  const ok=(val===q.ans); state.answered=true; state.answeredQ++;
+  const t=document.getElementById('opt0'),f=document.getElementById('opt1');
+  t.disabled=f.disabled=true;
+  if(q.ans===true){t.classList.add('correct');if(!ok)f.classList.add('wrong');}
+  else{f.classList.add('correct');if(!ok)t.classList.add('wrong');}
+  processResult(ok?q.pts:0, q.pts, q);
+}
+function submitAnswer(){
+  if(state.answered)return;
+  const q=SECTIONS[state.sectionIdx].questions[state.questionIdx];
+  let earned=0, maxPts=0;
+
+  if(q.type==='dropdown'){
+    maxPts=q.blanks.length*q.pts;
+    q.blanks.forEach((b,i)=>{
+      const sel=document.getElementById('dfSel'+i);
+      const tick=document.getElementById('dfTick'+i);
+      const ptsEl=document.getElementById('dfPts'+i);
+      const ok=sel&&sel.value===b.ans;
+      if(ok) earned+=q.pts;
+      if(sel){sel.disabled=true; sel.classList.add(ok?'correct-sel':'wrong-sel');}
+      if(tick) tick.textContent=ok?'✅':'❌';
+      if(ptsEl){
+        ptsEl.style.display='inline-block';
+        ptsEl.textContent=ok?`+${q.pts}分`:`+0分`;
+        ptsEl.className='df-pts '+(ok?'got':'miss');
+      }
+    });
+  }
+
+  if(q.type==='match'){
+    maxPts=q.pairs.length*q.pts;
+    q.pairs.forEach((p,i)=>{
+      const sel=document.getElementById('matchSel'+i);
+      const tick=document.getElementById('matchTick'+i);
+      const ptsEl=document.getElementById('matchPts'+i);
+      const ok=sel&&sel.value===p.right;
+      if(ok) earned+=q.pts;
+      if(sel){sel.disabled=true; sel.classList.add(ok?'correct-input':'wrong-input');}
+      if(tick) tick.textContent=ok?'✅':'❌';
+      if(ptsEl){
+        ptsEl.style.display='inline-block';
+        ptsEl.textContent=ok?`+${q.pts}分`:`+0分`;
+        ptsEl.className='match-pts '+(ok?'got':'miss');
+      }
+    });
+  }
+
+  if(q.type==='order'){
+    if(state.orderSlots.includes(null)){alert('請先將所有項目放入排序槽！');return;}
+    maxPts=q.pts;
+    let allOk=true;
+    state.orderSlots.forEach((item,i)=>{if(item!==q.items[q.correctOrder[i]])allOk=false;});
+    earned=allOk?q.pts:0;
+    const sEl=document.getElementById('orderSlots');
+    if(sEl) sEl.querySelectorAll('.order-slot').forEach((slot,i)=>{
+      slot.classList.add(state.orderSlots[i]===q.items[q.correctOrder[i]]?'correct-slot':'wrong-slot');
+    });
+  }
+
+  state.answered=true; state.answeredQ++;
+  processResult(earned, maxPts, q);
+}
+
+// ── Process Result ─────────────────────────────────────────
+function processResult(earned, maxPts, q){
+  state.score = Math.min(state.score+earned, TOTAL_MAX);
+  const fb=document.getElementById('feedbackBox');
+  const btnRow=document.getElementById('btnRow');
+
+  // determine status
+  const isAll  = earned===maxPts;
+  const isNone = earned===0;
+  const isPartial = !isAll && !isNone;
+
+  // partial score summary bar (for dropdown/match)
+  let summaryHtml='';
+  if(q.type==='dropdown'||q.type==='match'){
+    const total_blanks = q.type==='dropdown'?q.blanks.length:q.pairs.length;
+    const correct_count = earned/q.pts;
+    const cls = isAll?'all-correct':isNone?'all-wrong':'partial';
+    const emoji = isAll?'🎉':isNone?'❌':'⚡';
+    summaryHtml=`<div class="partial-summary ${cls}">
+      ${emoji} 答對 ${correct_count} / ${total_blanks} 格，獲得 <strong>${earned} / ${maxPts} 分</strong>
+    </div>`;
+  }
+
+  if(isAll){
+    fb.className='feedback-box show feedback-correct';
+    fb.innerHTML=`${summaryHtml}<strong>✅ 全部答對！+${earned} 分</strong><br>${q.explain}`;
+    if(state.score>0&&state.score%20===0) showCombo('🔥 得分突破 '+state.score+'！');
+  } else if(isPartial){
+    fb.className='feedback-box show feedback-partial';
+    fb.innerHTML=`${summaryHtml}<strong>部分正確，繼續加油！</strong><br>${q.explain}`;
+  } else {
+    fb.className='feedback-box show feedback-wrong';
+    fb.innerHTML=`${summaryHtml}<strong>❌ 未有得分</strong><br>${q.explain}`;
+  }
+
+  if(q.source) fb.innerHTML+=`<br><span style="font-size:0.75rem;color:#aaa;margin-top:6px;display:block;">📚 ${q.source}</span>`;
+
+  buildAnswerReveal(q);
+
+  btnRow.innerHTML='';
+  const showBtn=document.createElement('button');
+  showBtn.className='btn-show-ans'; showBtn.textContent='💡 顯示答案';
+  showBtn.onclick=toggleAnswer; btnRow.appendChild(showBtn);
+
+  const nextBtn=document.createElement('button');
+  nextBtn.className='btn-primary';
+  const isLast=state.sectionIdx>=SECTIONS.length-1&&state.questionIdx>=SECTIONS[state.sectionIdx].questions.length-1;
+  nextBtn.textContent=isLast?'查看結果 🏆':'下一題 →';
+  nextBtn.onclick=nextQuestion; btnRow.appendChild(nextBtn);
+
+  updateHeader();
+}
+
+function buildAnswerReveal(q){
+  const el=document.getElementById('answerReveal'); if(!el)return;
+  let h='<div class="ans-label">📖 標準答案：</div>';
+  if(q.type==='mc'){ const L=['A','B','C','D']; h+=`<strong>${L[q.ans]}. ${q.opts[q.ans]}</strong>`; }
+  else if(q.type==='tf'){ h+=`<strong>${q.ans?'✓ 正確':'✗ 錯誤'}</strong>`; }
+  else if(q.type==='dropdown'){
+    q.blanks.forEach(b=>{ h+=`${b.label} ${b.prefix||''} <strong style="color:#38ef7d">${b.ans}</strong> ${b.suffix||''}<br>`; });
+  }
+  else if(q.type==='match'){ q.pairs.forEach(p=>{ h+=`${p.left} → <strong>${p.right}</strong><br>`; }); }
+  else if(q.type==='order'){ q.correctOrder.forEach((idx,i)=>{ h+=`${i+1}. <strong>${q.items[idx]}</strong><br>`; }); }
+  el.innerHTML=h;
+}
+
+function toggleAnswer(){
+  const el=document.getElementById('answerReveal'); if(!el)return;
+  state.showingAnswer=!state.showingAnswer;
+  el.classList.toggle('show',state.showingAnswer);
+  const btn=document.querySelector('.btn-show-ans');
+  if(btn) btn.textContent=state.showingAnswer?'🙈 隱藏答案':'💡 顯示答案';
+}
+
+// ── Navigation ─────────────────────────────────────────────
+function nextQuestion(){
+  const sec=SECTIONS[state.sectionIdx];
+  if(state.questionIdx<sec.questions.length-1){ state.questionIdx++; showQuestion(); }
+  else if(state.sectionIdx<SECTIONS.length-1){ state.sectionIdx++; showSectionIntro(); }
+  else showResult();
+}
+
+// ── Result ─────────────────────────────────────────────────
+function showResult(){
+  document.getElementById('sectionIntro').style.display='none';
+  document.getElementById('questionCard').style.display='none';
+  document.getElementById('scoreMeter').style.display='none';
+  const result=document.getElementById('resultScreen');
+  result.classList.add('show');
+  const passed=state.score>=PASS_SCORE;
+  const g=state.score>=90?['🏆','A+','優秀！對簡報內容掌握全面，尤其各活動成效及資料來源，表現卓越！']:
+          state.score>=80?['🥇','A', '良好！大部分內容正確，繼續鞏固資料來源的配對即可！']:
+          state.score>=70?['🥈','B', '不錯！基礎掌握良好，建議重溫各活動成效的細節。']:
+          state.score>=60?['🎖️','C', '合格！建議重點溫習各活動成效及其學術依據。']:
+                          ['📚','F', '未合格。建議重新閱讀簡報，特別留意各活動的成效及資料來源。'];
+
+  // scoring breakdown table
+  const rows=[
+    {label:'MC 選擇題 × 8題',  pts:'8 × 4分', total:'32分'},
+    {label:'TF 判斷題 × 4題',  pts:'4 × 3分', total:'12分'},
+    {label:'下拉選擇題 14格',   pts:'14 × 2分',total:'28分'},
+    {label:'配對題 7對',        pts:'7 × 2分', total:'14分'},
+    {label:'排序題 × 2題',      pts:'2 × 7分', total:'14分'},
+  ];
+  let breakdown=rows.map(r=>`<div class="rb-row"><span>${r.label}</span><span style="color:#aaa;font-size:0.75rem;">${r.pts}</span><span class="rb-score">${r.total}</span></div>`).join('');
+
+  const barClass=passed?'good':state.score>=40?'mid':'bad';
+  result.innerHTML=`
+    <div class="result-grade">${g[0]}</div>
+    <div class="result-score-text">${state.score} 分</div>
+    <div class="result-score-sub">滿分 100 分</div>
+    <div class="result-pass-badge ${passed?'pass':'fail'}">${passed?'✅ 合格（≥60分）':'❌ 未合格（<60分）'}</div>
+    <div style="background:rgba(255,255,255,0.07);border-radius:12px;padding:12px 16px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="color:#ccc;font-size:0.8rem;">得分進度</span>
+        <span style="color:#f9d423;font-weight:700;font-size:0.8rem;">${state.score}/100</span>
+      </div>
+      <div class="meter-bar-wrap">
+        <div class="meter-bar-fill ${barClass}" style="width:${state.score}%"></div>
+        <div class="pass-line"></div>
+      </div>
+      <div style="color:#aaa;font-size:0.72rem;margin-top:4px;text-align:right;">白線 = 合格線 60分</div>
+    </div>
+    <div class="result-msg">${g[2]}</div>
+    <div class="result-breakdown">
+      <h4>📊 評分細則（總分 100）</h4>
+      ${breakdown}
+      <div class="rb-row" style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.15);padding-top:8px;font-weight:700;">
+        <span>你的得分</span><span></span>
+        <span class="rb-score" style="font-size:1.1rem;">${state.score} / 100</span>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="restartGame()">🔄 重新挑戰</button>`;
+  updateHeader();
+}
+
+// ── Restart ────────────────────────────────────────────────
+function restartGame(){
+  state={sectionIdx:0,questionIdx:0,score:0,answered:false,showingAnswer:false,answeredQ:0,orderSlots:[],orderRemaining:[]};
+  document.getElementById('resultScreen').classList.remove('show');
+  document.getElementById('scoreMeter').style.display='none';
+  showStartScreen();
+}
+
+// ── Start Screen ───────────────────────────────────────────
+function showStartScreen(){
+  const intro=document.getElementById('sectionIntro');
+  document.getElementById('questionCard').style.display='none';
+  intro.style.display='block';
+  const secList=SECTIONS.map(s=>`<span style="display:inline-block;background:rgba(255,255,255,0.08);border-radius:8px;padding:3px 10px;margin:3px;font-size:0.78rem;color:#ddd;">${s.icon}${s.name.replace(/^[^\s]+\s/,'')}</span>`).join('');
+  intro.innerHTML=`
+    <div class="sec-icon">🌸</div>
+    <h2>關愛伴你行 互動練習</h2>
+    <p>本練習涵蓋簡報所有重點，包括：<br>
+    匯報目的、照顧者困難、員工專長、三大活動環節的<br>
+    <strong>內容、成效及資料來源</strong>。</p>
+    <br><div>${secList}</div><br>
+    <div style="background:rgba(249,212,35,0.1);border:1px solid rgba(249,212,35,0.3);border-radius:12px;padding:14px;margin:10px 0;font-size:0.82rem;color:#f9d423;text-align:left;line-height:1.8;">
+      📊 <strong>評分細則（總分 100 分）</strong><br>
+      選擇題 × 8題 → 每題 4分 = 32分<br>
+      判斷題 × 4題 → 每題 3分 = 12分<br>
+      下拉選擇題 14格 → 每格 2分 = 28分（部分正確可獲部分分數）<br>
+      配對題 7對 → 每對 2分 = 14分（部分正確可獲部分分數）<br>
+      排序題 × 2題 → 每題 7分 = 14分<br>
+      合格線：<strong>60 分</strong>
+    </div><br>
+    <button class="btn-primary" onclick="showSectionIntro()" style="max-width:220px;margin:0 auto;">開始挑戰 🚀</button>`;
+  updateHeader();
+}
+
+showStartScreen();
+</script>
+</body>
+</html>
